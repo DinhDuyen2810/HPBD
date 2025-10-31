@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vòng quay sinh nhật 🎉</title>
+  <link rel="stylesheet" href="HPBD.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(135deg, #d8f3ff, #a3e3ff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    canvas#confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wheel-container {
+      position: relative;
+      text-align: center;
+      z-index: 2;
+    }
+
+    canvas#wheel {
+      display: block;
+      margin: 0 auto;
+      border-radius: 50%;
+      transition: transform 4s ease-out;
+    }
+
+    #spin-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffb703;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 90px;
+      height: 90px;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      z-index: 3;
+    }
+
+    #spin-btn:hover {
+      background: #fb8500;
+      z-index: 4;
+    }
+
+    .info {
+      text-align: center;
+      margin-top: 20px;
+      z-index: 2;
+    }
+
+    #prize-box {
+      background: #fff;
+      padding: 15px;
+      border-radius: 15px;
+      width: 280px;
+      margin: 15px auto;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      font-weight: 600;
+      color: #023e8a;
+    }
+
+    #home-btn {
+      display: block;
+      margin: 20px auto;
+      background: #00b4d8;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #home-btn:hover {
+      background: #0077b6;
+    }
+
+    .popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 9999;
+    }
+
+    .popup.hidden {
+      display: none;
+    }
+
+    .popup-content {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .popup-content button {
+      margin-top: 10px;
+      background: #0077b6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="confetti"></canvas>
+
+  <div class="wheel-container">
+    <canvas id="wheel" width="400" height="400"></canvas>
+    <button id="spin-btn">QUAY</button>
+  </div>
+
+  <div class="info">
+    <p>🎯 Lượt quay còn lại: <span id="spins-left">2</span></p>
+    <div id="prize-box">Chưa có giải thưởng nào 🎁</div>
+    <button id="home-btn">🏠 Trang chủ</button>
+  </div>
+
+  <div id="popup" class="popup hidden">
+    <div class="popup-content">
+      <p id="popup-message"></p>
+      <button id="popup-ok">OK</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <script>
+    const EMAIL_SERVICE_ID = "service_3yg5oxl";
+    const EMAIL_TEMPLATE_ID = "template_onhp93b";
+    const EMAIL_PUBLIC_KEY = "BN3XgI_HJGo8Sqri9";
+    emailjs.init(EMAIL_PUBLIC_KEY);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const userName = urlParams.get("name");
+    const userEmail = urlParams.get("email");
+    const userDOB = urlParams.get("dob");
+
+    const prizes = ["Bánh kem", "Gấu bông", "Ly xịn", "Voucher ăn", "Sách dễ thương", "Hoa", "Nến thơm", "Quà bí mật", "Sticker cute", "Lời chúc đặc biệt 💖"];
+    const wheel = document.getElementById("wheel");
+    const ctx = wheel.getContext("2d");
+    const spinBtn = document.getElementById("spin-btn");
+    const spinsLeft = document.getElementById("spins-left");
+    const prizeBox = document.getElementById("prize-box");
+
+    const popup = document.getElementById("popup");
+    const popupMsg = document.getElementById("popup-message");
+    const popupOk = document.getElementById("popup-ok");
+
+    let spins = 0;
+    let wonPrizes = [];
+    let totalRotation = 0;
+    const baseSpinRounds = 3.5; // giảm từ 5 → 3.5 vòng (nhanh hơn)
+
+    // 🎈 NỀN CHẠY TỪ ĐẦU
+    startConfetti();
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, wheel.width, wheel.height);
+      const sliceAngle = (2 * Math.PI) / prizes.length;
+      for (let i = 0; i < prizes.length; i++) {
+        ctx.beginPath();
+        ctx.moveTo(200, 200);
+        ctx.arc(200, 200, 200, i * sliceAngle, (i + 1) * sliceAngle);
+        ctx.fillStyle = i % 2 === 0 ? "#90e0ef" : "#caf0f8";
+        ctx.fill();
+        ctx.save();
+        ctx.translate(200, 200);
+        ctx.rotate(i * sliceAngle + sliceAngle / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#03045e";
+        ctx.font = "bold 15px Poppins";
+        ctx.fillText(prizes[i], 180, 10);
+        ctx.restore();
+      }
+    }
+    drawWheel();
+
+    function angleForSlotDeg(index) {
+      const per = 360 / prizes.length;
+      return (index * per) + (per / 2);
+    }
+
+    function rotateToSlot(index, durationMs = 4000) {
+      const centerAngle = angleForSlotDeg(index);
+      const offsetToTop = (360 - centerAngle);
+      const nextRotation = totalRotation + baseSpinRounds * 360 + offsetToTop - (totalRotation % 360);
+      let finalRotation = nextRotation;
+      if (finalRotation <= totalRotation) finalRotation = totalRotation + baseSpinRounds * 360 + offsetToTop;
+      totalRotation = finalRotation;
+      wheel.style.transition = `transform ${durationMs / 1000}s cubic-bezier(.2,.9,.2,1)`;
+      wheel.style.transform = `rotate(${totalRotation}deg)`;
+      return durationMs + 100;
+    }
+
+    function showPopup(msg, cb) {
+      popupMsg.textContent = msg;
+      popup.classList.remove("hidden");
+      popupOk.onclick = () => {
+        popup.classList.add("hidden");
+        if (cb) cb();
+      };
+    }
+
+    function startConfetti() {
+      const confettiCanvas = document.getElementById("confetti");
+      const ctx2 = confettiCanvas.getContext("2d");
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+      const confetti = Array.from({ length: 100 }).map(() => ({
+        x: Math.random() * confettiCanvas.width,
+        y: Math.random() * confettiCanvas.height,
+        r: Math.random() * 5 + 2,
+        d: Math.random() * 2 + 1,
+        color: `hsl(${Math.random() * 360}, 80%, 60%)`
+      }));
+      function draw() {
+        ctx2.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confetti.forEach(p => {
+          ctx2.beginPath();
+          ctx2.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx2.fillStyle = p.color;
+          ctx2.fill();
+          p.y += p.d;
+          if (p.y > confettiCanvas.height) p.y = -10;
+        });
+        requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    async function handleSpin() {
+      if (spins >= 2) { showPopup("🎁 Bạn đã quay đủ 2 lần rồi!"); return; }
+      spins++;
+      spinBtn.disabled = true;
+      const forced = [3, 7];
+      const slotIndex = forced[spins - 1];
+      const waitMs = rotateToSlot(slotIndex);
+      spinsLeft.textContent = Math.max(2 - spins, 0);
+      await new Promise(res => setTimeout(res, waitMs));
+      wonPrizes.push(prizes[slotIndex]);
+      prizeBox.textContent = "🎉 Giải đã trúng: " + wonPrizes.join(" + ");
+      showPopup(`🎊 Chúc mừng! Bạn trúng: ${prizes[slotIndex]}!`);
+      if (spins === 2) {
+        setTimeout(() => {
+          emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+            user_name: userName,
+            email: userEmail,
+            birthday: userDOB,
+            prize: wonPrizes.join(" + "),
+            voucher_code: "VOUCHER-" + Math.floor(Math.random() * 100000)
+          })
+            .then(() => showPopup("📩 Mail đã gửi đến " + userEmail))
+            .catch(err => showPopup("Lỗi gửi mail: " + err.message));
+        }, 600);
+      } else {
+        setTimeout(() => spinBtn.disabled = false, 600);
+      }
+    }
+
+    spinBtn.addEventListener('click', handleSpin);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !spinBtn.disabled) handleSpin();
+    });
+
+    document.getElementById("home-btn").onclick = () => window.location.href = "HPBD.html";
+  </script>
+</body>
+</html>
