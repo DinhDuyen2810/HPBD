@@ -71,9 +71,15 @@ body {
     border-radius: 15px;
     text-align: center;
     animation: bounce 0.4s ease;
-    width: 250px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    white-space: pre-wrap;  
+    width: fit-content;     
+    min-width: 250px;    
+    max-width: 550px;       
+    margin: auto;          
   }
+  
+  
   
   @keyframes bounce {
     0% { transform: scale(0.8); opacity: 0; }

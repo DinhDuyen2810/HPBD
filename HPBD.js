@@ -13,13 +13,15 @@ const nextBtn = document.getElementById("next-btn");
 let userName = "", userEmail = "", userDOB = "";
 
 function showPopup(msg, cb) {
-  popupMsg.textContent = msg;
+  popupMsg.textContent = ""; 
+  popupMsg.innerHTML = msg.replace(/\n/g, "<br>"); 
   popup.classList.remove("hidden");
   popupOk.onclick = () => {
     popup.classList.add("hidden");
     if (cb) cb();
   };
 }
+
 
 function sendBirthdayEmail() {
   const params = { email: userEmail };
@@ -61,7 +63,7 @@ function showEmailForm() {
 
 function handleEmailStep() {
   userEmail = document.getElementById("email").value.trim();
-  if (userEmail !== "hanhnhutea@gmail.com") {
+  if (userEmail !== "ngandang.dn@gmail.com") {
     showPopup("U sure?");
     return;
   }
@@ -92,9 +94,8 @@ function handleDOBStep() {
     return;
   }
 
-  sendBirthdayEmail();
   showPopup(
-    "🎂 Hôm nay là sinh nhật bạn sao!\nChúc bạn luôn vui vẻ, hạnh phúc và gặp nhiều may mắn!\nCùng đến vòng quay sinh nhật nhé 🎉",
+    "Ồ, hóa ra hôm nay là sinh nhật của bạn sao. Vậy thì phải làm cho hôm nay trở thành 1 ngày đáng nhớ nào\nTuổi mới nhiều điều mới, mong bạn hãy bỏ đi những điều không tốt đẹp và luôn tiến về phía trước. Đừng quá lo lắng, có gì khó khăn cứ alo t nhé(sẽ nghe) \nChúc bạn Ngân luôn giữ nụ cười trên môi, luôn gặp mọi điều may mắn, luôn thành công trên mọi quãng đường đi qua, và luôn mạnh mẽ để đương đầu mọi khó khăn \nChúc bạn, à chúc mừng bạn dã trúng 2 lượt quay may mắn, đi đến vòng quay thôi",
     () => {
       window.location.href = `spin.html?name=${encodeURIComponent(userName)}&email=${encodeURIComponent(userEmail)}&dob=${encodeURIComponent(userDOB)}`;
     }
